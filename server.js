@@ -13,34 +13,52 @@ import categoryRoutes from "./routes/categoryRoutes.js";
 import foodRoutes from "./routes/foodRoutes.js";
 import authRoutes from "./routes/auth.route.js";
 import siteUserRoutes from "./routes/siteUser.routes.js";
-import commentRoutes from "./routes/comment.route.js"
-import placesRoutes from "./routes/place.route.js"
+import commentRoutes from "./routes/comment.route.js";
+import placesRoutes from "./routes/place.route.js";
 import placeCategory from "./routes/place.catego.route.js";
 import Placecomm from "./routes/pcomment.route.js";
 
-
+// Config paths
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Load environment variables
 dotenv.config({ path: path.join(__dirname, "config", ".env") });
 
 if (!process.env.DB_URL) throw new Error("DB_URL is not set in .env!");
 if (!process.env.SESSION_SECRET) throw new Error("SESSION_SECRET is not set in .env!");
 
+// Initialize Express
 const app = express();
+
+// ✅ CORS configuration: Allow frontend from local and Vercel
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://ck-host-zddt.vercel.app", // Production
+  "https://ck-host-zddt-git-main-gayashan123s-projects.vercel.app" // Preview
+];
 
 app.use(
   cors({
-    origin: "https://ceylon-calling123-git-main-gayashan123s-projects.vercel.app",
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true); // allow curl, Postman
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      } else {
+        return callback(new Error("❌ Not allowed by CORS: " + origin));
+      }
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 
+// Middleware
 app.use(express.json());
 app.use(cookieParser());
 
+// ✅ Session configuration
 app.use(
   session({
     secret: process.env.SESSION_SECRET,
@@ -49,38 +67,41 @@ app.use(
     store: MongoStore.create({
       mongoUrl: process.env.DB_URL,
       collectionName: "sessions",
-      ttl: 7 * 24 * 60 * 60,
+      ttl: 7 * 24 * 60 * 60, // 7 days
     }),
     cookie: {
       httpOnly: true,
-      maxAge: 1000 * 60 * 60 * 24 * 7,
-      secure: false,
+      maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+      secure: process.env.NODE_ENV === "production", // Only use secure cookies in production
       sameSite: "lax",
     },
   })
 );
 
+// Serve uploads
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
+// Test route
 app.get("/", (req, res) => {
   res.json({
-    status: "Server running",
+    status: "Server running ✅",
     session: req.session,
     user: req.user,
   });
 });
 
+// Routes
 app.use("/api/shops", shopRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/food", foodRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/siteuser", siteUserRoutes);
-app.use("/api/comments",commentRoutes);
-app.use("/api/place",placesRoutes);
-app.use("/api/placecat",placeCategory);
-app.use("/api/placecomment",Placecomm);
+app.use("/api/comments", commentRoutes);
+app.use("/api/place", placesRoutes);
+app.use("/api/placecat", placeCategory);
+app.use("/api/placecomment", Placecomm);
 
-// Production client serve
+// ✅ Serve frontend in production (Optional if you host frontend separately like Vercel)
 if (process.env.NODE_ENV === "production") {
   const clientDistPath = path.join(__dirname, "../my-app/dist");
   app.use(express.static(clientDistPath));
@@ -89,12 +110,15 @@ if (process.env.NODE_ENV === "production") {
   });
 }
 
+// Port
 const PORT = process.env.PORT || 5001;
 
+// Connect DB and start server
 connectDB()
   .then(() => {
     app.listen(PORT, () => {
-      console.log(`✅ Server running on http://localhost:${PORT}`);
+      console.log(`✅ Server running on port ${PORT}`);
+      console.log(`🌐 API: ${process.env.NODE_ENV === "production" ? "https://observant-vibrancy-production.up.railway.app" : `http://localhost:${PORT}`}`);
     });
   })
   .catch((err) => {
