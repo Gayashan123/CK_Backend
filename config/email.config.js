@@ -7,9 +7,17 @@ const resendApiKey = process.env.RESEND_API_KEY;
 const resendFromEmail = process.env.RESEND_FROM_EMAIL;
 const resendFromName = process.env.RESEND_FROM_NAME || "CeylonCall";
 
-// Validate required environment variables
-if (!resendApiKey || !resendFromEmail) {
-  throw new Error("Missing required email configuration in .env file");
+// Basic check and log
+if (!resendApiKey) {
+  console.error("❌ RESEND_API_KEY is missing from .env");
+} else {
+  console.log("✅ RESEND_API_KEY loaded");
+}
+
+if (!resendFromEmail) {
+  console.error("❌ RESEND_FROM_EMAIL is missing from .env");
+} else {
+  console.log(`✅ Sender email: ${resendFromEmail}`);
 }
 
 const resend = new Resend(resendApiKey);
